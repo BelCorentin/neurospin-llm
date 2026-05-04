@@ -1,0 +1,170 @@
+====== Software Installation at NeuroSpin ======
+
+This page describes how to install and use the main neuroimaging software packages on NeuroSpin workstations and on the HPC cluster (`nscluster`).
+
+===== General Principles =====
+
+  * **Workstations**: most software is pre-installed. Use the `module` system to load specific versions.
+  * **Cluster (nscluster)**: always use `module load` rather than installing software in your home directory. For custom Python environments, use `uv` or `conda`.
+  * **Never** install software system-wide on shared machines — contact it-support@neurospin.fr for system-level requests.
+
+===== Available Software Modules =====
+
+Check available modules with:
+<code bash>
+module avail
+</code>
+
+Most commonly used modules:
+
+^ Module ^ Version ^ Notes ^
+| fsl | 6.0.7.9 | FSL + FIX, loaded by default on workstations |
+| freesurfer | 7.4.1 | Needs FREESURFER_HOME set |
+| spm | 12.7 | Requires MATLAB; use `module load matlab/r2023b spm/12.7` |
+| mrtrix3 | 3.0.4 | Diffusion tractography |
+| afni | 23.3 | AFNI suite |
+| dcm2niix | 1.0.20230411 | DICOM to NIfTI conversion |
+| matlab | r2023b | MATLAB; requires a NeuroSpin license checkout |
+| python | 3.11 | Bare CPython; prefer using uv venvs (see below) |
+| cuda | 12.2 | NVIDIA CUDA toolkit for GPU jobs |
+| singularity | 3.11 | Container runtime for cluster jobs |
+
+===== FSL =====
+
+==== Loading FSL ====
+
+<code bash>
+module load fsl/6.0.7.9
+# verify
+flirt -version   # should print FLIRT version 6.0
+</code>
+
+FSL is automatically configured via `$FSLDIR` once the module is loaded. No additional setup needed.
+
+==== Common FSL Commands ====
+
+<code bash>
+# Brain extraction
+bet input.nii.gz output_brain.nii.gz -f 0.5 -g 0
+
+# Structural registration to MNI152
+flirt -in sub-01_T1w.nii.gz -ref $FSLDIR/data/standard/MNI152_T1_2mm_brain.nii.gz \
+      -out sub-01_T1w_MNI.nii.gz -omat sub-01_T1w_MNI.mat
+
+# First-level fMRI analysis
+feat design.fsf
+</code>
+
+==== FIX (ICA-based artefact removal) ====
+
+FIX is bundled with `module load fsl/6.0.7.9`. The NeuroSpin pre-trained classifier is at:
+`/data/software/fsl/fix_classifiers/NS_HCP_hp2000.RData`
+
+===== FreeSurfer =====
+
+==== Installation / Setup ====
+
+<code bash>
+module load freesurfer/7.4.1
+# FreeSurfer requires a licence file. Put it in your home:
+cp /data/software/freesurfer/licence.txt ~/.license.txt
+export FS_LICENSE=~/.license.txt
+# verify
+recon-all --version
+</code>
+
+==== Running recon-all ====
+
+<code bash>
+# Full cortical reconstruction (takes 6–10 hours — always run on the cluster!)
+recon-all -subject sub-01 -i /data/projects/my_project/nifti/sub-01/ses-01/T1w.nii.gz \
+          -all -sd /data/projects/my_project/freesurfer/
+</code>
+
+**Always submit recon-all as a SLURM job** — it is too slow and memory-intensive to run interactively on a workstation. See the cluster usage guide on the intranet.
+
+===== Python Environment (uv) =====
+
+The recommended Python workflow at NeuroSpin uses `uv` for fast, reproducible virtual environments.
+
+==== Installing uv ====
+
+<code bash>
+curl -LsSf https://astral.sh/uv/install.sh | sh
+# reload shell
+source ~/.bashrc
+uv --version   # e.g., uv 0.5.x
+</code>
+
+==== Creating a project environment ====
+
+<code bash>
+cd /data/projects/my_project/
+uv init
+uv add numpy scipy nibabel nilearn mne matplotlib pandas
+uv run python my_script.py
+</code>
+
+==== Installing neuroimaging packages ====
+
+<code bash>
+uv add nilearn           # fMRI analysis and visualisation
+uv add mne               # MEG/EEG analysis
+uv add nibabel           # NIfTI/GIFTI I/O
+uv add dipy              # diffusion MRI
+uv add pybids            # BIDS dataset management
+uv add heudiconv         # DICOM to BIDS conversion
+</code>
+
+===== SPM (Statistical Parametric Mapping) =====
+
+SPM requires MATLAB. Load both modules:
+
+<code bash>
+module load matlab/r2023b spm/12.7
+# Launch MATLAB and type:
+#   spm fmri
+# to open the SPM GUI.
+</code>
+
+For batch scripting (recommended for large studies):
+<code matlab>
+spm('defaults', 'fmri');
+spm_jobman('initcfg');
+% ... define your matlabbatch ...
+spm_jobman('run', matlabbatch);
+</code>
+
+===== Docker / Singularity on the Cluster =====
+
+Docker is **not available** on cluster compute nodes. Use **Singularity** (available via `module load singularity/3.11`) to run container-based tools:
+
+<code bash>
+module load singularity/3.11
+# Pull and convert a Docker image:
+singularity pull fmriprep.sif docker://nipreps/fmriprep:24.0.0
+# Run fMRIPrep:
+singularity run --cleanenv fmriprep.sif \
+    /data/projects/my_project/bids/ \
+    /data/projects/my_project/fmriprep_output/ \
+    participant --participant-label 01 \
+    --fs-license-file ~/.license.txt
+</code>
+
+===== MATLAB =====
+
+<code bash>
+module load matlab/r2023b
+matlab -nodisplay -nosplash -r "run('my_script.m'); exit"
+# or with GUI (on a workstation):
+matlab
+</code>
+
+MATLAB license server: `license-matlab.neurospin.fr`. If license checkout fails, contact it-support@neurospin.fr — the pool may be exhausted.
+
+===== Requesting New Software =====
+
+If you need software that is not listed above:
+  - **Python package**: install it in your project's `uv` venv.
+  - **System module**: submit a request at http://intranet.neurospin.fr/software-request. Include the software name, version, license type, and justification. Processing time: 1–2 weeks.
+  - **Licensed commercial software**: requires budget approval from your PI before the request is submitted.

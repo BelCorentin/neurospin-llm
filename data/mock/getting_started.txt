@@ -1,0 +1,86 @@
+====== Getting Started at NeuroSpin ======
+
+Welcome to NeuroSpin, the neuroimaging research centre at CEA Saclay. This page is the main entry point for new members (PhD students, postdocs, engineers, and visiting researchers).
+
+===== First Steps =====
+
+==== Badging and Building Access ====
+
+Your building access badge is issued by the HR office (bâtiment 145, ground floor). You will need:
+  * A signed contract or invitation letter
+  * A valid photo ID
+  * A passport-format photograph
+
+Badge activation takes 1–2 business days. Contact Sylvie Bourdier (sylvie.bourdier@cea.fr) if you have not received your badge within 3 days of arriving.
+
+The MRI scanner rooms (rooms 106 and 108) require an additional RFID clearance granted by the MRI safety officer. See the [[mri_protocols|MRI Protocols]] page for details.
+
+==== IT Account Setup ====
+
+To get a NeuroSpin IT account, fill in the account request form on the intranet at http://intranet.neurospin.fr/it-request. You will need the signature of your direct supervisor.
+
+Your account gives you access to:
+  * Email (firstname.lastname@neurospin.fr)
+  * The internal wiki (this site)
+  * VPN access (required for remote work — see [[network_access|Network Access]])
+  * The shared HPC cluster (see below)
+
+Account creation typically takes 24 hours. Contact it-support@neurospin.fr for urgent requests.
+
+==== HPC Cluster Access ====
+
+NeuroSpin operates its own HPC cluster (`nscluster`). To get an account:
+
+  - Email it-support@neurospin.fr with subject "New cluster account request"
+  - Include your supervisor's name and your expected data storage needs
+  - You will receive credentials and an SSH key within 2 business days
+
+Your home directory on the cluster is at ''/home/$USER'' with a 100 GB quota. Project data should go in ''/data/projects/$PROJECT_NAME'' (see [[data_storage|Data Storage]] for quotas and policies).
+
+===== Key People and Contacts =====
+
+^ Role ^ Name ^ Email ^
+| IT Support | Jean-Baptiste Poline | it-support@neurospin.fr |
+| MRI Safety Officer | Dr. Marie Leclaire | mri-safety@neurospin.fr |
+| HR / Badges | Sylvie Bourdier | sylvie.bourdier@cea.fr |
+| Data Management | Pierre-Yves Herve | data-mgmt@neurospin.fr |
+| General Director | Denis Le Bihan | direction@neurospin.fr |
+
+===== Mandatory Training =====
+
+All new members must complete the following before starting any research:
+
+  - **MRI Safety Training** (mandatory for anyone who enters the scanner room): book via the intranet calendar under "Formations MRI". Duration: half a day. Run monthly.
+  - **Data Protection (RGPD/GDPR)**: online module available on the CEA e-learning platform. Takes approximately 1 hour. Certificate must be sent to hr@neurospin.fr.
+  - **Fire Safety**: classroom session, scheduled every 6 months. Check the intranet for next session date.
+
+===== Computing Environment =====
+
+NeuroSpin provides two computing environments:
+
+== Workstations ==
+Linux (Ubuntu 22.04) workstations are available in the open-plan office (room 214). Log in with your NeuroSpin credentials. Software available: FSL, FreeSurfer, SPM, AFNI, MRtrix3, Python 3.10 (Anaconda), MATLAB R2023b.
+
+== HPC Cluster ==
+For large-scale analyses, use the cluster. It runs SLURM. Standard software modules are available via `module load`. See [[software_install|Software Installation]] for details.
+
+===== Useful Links =====
+
+  * NeuroSpin wiki: https://neurospin-wiki.org/
+  * Intranet: http://intranet.neurospin.fr/
+  * Cluster status page: http://nscluster.neurospin.fr/status
+  * RGPD e-learning: https://elearning.cea.fr/rgpd
+
+===== FAQ =====
+
+**Q: Can I bring my own laptop?**
+A: Yes. Connect it to the NeuroSpin-Guests Wi-Fi network. For access to internal resources (cluster, shared storage), use VPN. See [[network_access|Network Access]].
+
+**Q: How do I access the scanner?**
+A: You need MRI safety clearance, a valid booking in the scanner schedule, and approval from a qualified MRI operator. See [[mri_protocols|MRI Protocols]].
+
+**Q: Where do I store my raw DICOM data?**
+A: In the dedicated DICOM archive, accessible via the `neurospin-fetch` tool. See [[data_storage|Data Storage]].
+
+**Q: Is there a printing/scanning service?**
+A: Yes. Printer HP-NS-214 is in room 214. Your NeuroSpin login credentials work on it. Maximum print quota: 500 pages/month.

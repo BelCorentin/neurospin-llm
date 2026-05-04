@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+*.egg-info/
+
+# Environment
+.env
+
+# Qdrant persistent storage
+data/qdrant/
+
+# Model caches (large, re-downloaded on demand)
+*.cache/
+.cache/
+
+# Ingest virtual environment
+ingest/.venv/
+
+# OS
+.DS_Store
+Thumbs.db

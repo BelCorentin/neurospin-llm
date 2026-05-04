@@ -1,0 +1,73 @@
+services:
+
+  # ── Vector database ──────────────────────────────────────────────────────────
+  qdrant:
+    image: qdrant/qdrant:v1.9.4
+    container_name: ns-qdrant
+    restart: unless-stopped
+    ports:
+      - "${QDRANT_PORT:-6333}:6333"
+      - "6334:6334"   # gRPC (optional)
+    volumes:
+      - ./data/qdrant:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:6333/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── LLM inference server ─────────────────────────────────────────────────────
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: ns-vllm
+    restart: unless-stopped
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=0          # Use GPU 0 only
+      - HF_TOKEN=${HF_TOKEN:-}
+      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN:-}
+    ports:
+      - "${VLLM_PORT:-8000}:8000"
+    volumes:
+      # Cache downloaded model weights across container restarts
+      - huggingface_cache:/root/.cache/huggingface
+    command: >
+      --model ${LLM_MODEL:-Qwen/Qwen2.5-7B-Instruct}
+      --host 0.0.0.0
+      --port 8000
+      --gpu-memory-utilization ${VLLM_GPU_MEMORY_UTILIZATION:-0.85}
+      --max-model-len 8192
+      --dtype bfloat16
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s   # model download + load takes time on first run
+
+  # ── Chainlit RAG application ─────────────────────────────────────────────────
+  app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: ns-app
+    restart: unless-stopped
+    environment:
+      - QDRANT_URL=http://qdrant:6333
+      - QDRANT_COLLECTION=${QDRANT_COLLECTION:-neurospin_wiki}
+      - VLLM_BASE_URL=http://vllm:8000/v1
+      - LLM_MODEL=${LLM_MODEL:-Qwen/Qwen2.5-7B-Instruct}
+      - EMBED_MODEL=${EMBED_MODEL:-BAAI/bge-m3}
+      - RAG_TOP_K=${RAG_TOP_K:-5}
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      vllm:
+        condition: service_healthy
+
+volumes:
+  huggingface_cache:
+    # Named volume so model weights persist across `docker compose down` and restarts.
+    # To force a re-download: `docker volume rm neurospin-llm_huggingface_cache`

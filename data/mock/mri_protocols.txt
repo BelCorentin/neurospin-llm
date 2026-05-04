@@ -1,0 +1,117 @@
+====== MRI Protocols at NeuroSpin ======
+
+This page documents the MRI scanner resources at NeuroSpin, booking procedures, sequence parameters, and safety rules.
+
+===== Scanner Inventory =====
+
+NeuroSpin operates three MRI scanners:
+
+^ Scanner ^ Field Strength ^ Model ^ Location ^ Primary Use ^
+| NS-3T-A | 3 Tesla | Siemens Prisma | Room 106 | Human clinical/cognitive research |
+| NS-3T-B | 3 Tesla | Siemens Prisma Fit | Room 107 | Human cognitive research (booking pool) |
+| NS-7T | 7 Tesla | Siemens Terra | Room 108 | High-resolution human/animal research |
+
+The 7T scanner (Room 108) requires additional safety approval. Contact mri-safety@neurospin.fr.
+
+===== Booking a Scanner Session =====
+
+==== Step 1: Safety Clearance ====
+
+Before you can book any scanner time, you must hold a valid MRI safety certificate:
+  - Complete the MRI Safety Training (see [[getting_started|Getting Started]])
+  - Your certificate is valid for 2 years; renew via intranet booking system
+  - 7T requires a separate 7T-specific safety addendum
+
+==== Step 2: Ethics Approval ====
+
+All human subject scanning requires an approved ethics protocol (CPP or IRB). Submit a copy of your approval to mri-safety@neurospin.fr before your first session. Animal protocols require APAFIS clearance — contact animal-facility@neurospin.fr.
+
+==== Step 3: Book the Scanner ====
+
+Use the online booking system at http://mri-booking.neurospin.fr/ (intranet only; use VPN from outside). 
+
+Rules:
+  * Sessions must be booked at least **48 hours in advance**
+  * Maximum session length: 2 hours (request exception from MRI coordinator for longer)
+  * Cancellations less than 24 hours in advance are logged; **3 late cancellations** result in temporary booking suspension
+  * Emergency cancellations: call the MRI hotline +33 1 69 08 79 10
+
+===== Standard Sequences =====
+
+==== Structural T1 (MPRAGE) ====
+
+Protocol name: `NS_MPRAGE_1mm_iso`
+
+Parameters:
+  * TR = 2300 ms, TE = 2.96 ms, TI = 900 ms
+  * Flip angle: 9°
+  * Voxel size: 1 × 1 × 1 mm isotropic
+  * FOV: 256 × 256 × 176 mm
+  * Duration: ~5 minutes
+  * Output: DICOM, automatically archived to neurospin-archive under your project name
+
+==== Functional MRI (BOLD EPI) ====
+
+Protocol name: `NS_BOLD_EPI_2mm_TR1500`
+
+Parameters:
+  * TR = 1500 ms, TE = 30 ms
+  * Voxel size: 2 × 2 × 2 mm isotropic
+  * 60 slices, multiband factor 3
+  * Flip angle: 70°
+  * Typical run: 200–400 volumes (~5–10 min per run)
+  * Fieldmap: always acquire a matched fieldmap before functional runs
+
+==== Diffusion Tensor Imaging (DTI) ====
+
+Protocol name: `NS_DTI_2mm_b1000_64dir`
+
+Parameters:
+  * b-values: 0 (8 volumes) + 1000 s/mm² (64 directions)
+  * Voxel size: 2 × 2 × 2 mm isotropic
+  * TR = 7000 ms, TE = 95 ms
+  * Duration: ~15 minutes
+
+==== Arterial Spin Labeling (ASL) ====
+
+Protocol name: `NS_pCASL_perfusion`
+
+  * Labeling delay: 1800 ms
+  * Post-labeling delay: 2000 ms
+  * 60 pairs (label + control)
+  * Duration: ~12 minutes
+
+===== MRI Safety Rules =====
+
+  - **No ferromagnetic objects** in the scanner room (zone IV). All participants must complete a screening questionnaire.
+  - **Implants**: check contra-indication database (MRIsafety.com) for any implant. When in doubt, do NOT scan.
+  - **Emergency stop** button is located on the right side of the magnet bore — yellow handle.
+  - **Quench procedure**: exit the room immediately, pull the quench handle (red, outside the room door) only if there is a cryogenic emergency.
+  - All incidents must be reported within 24 hours to mri-safety@neurospin.fr using the incident form on the intranet.
+
+===== Data Transfer After Scanning =====
+
+DICOM data is automatically pushed to the NeuroSpin DICOM archive. To retrieve your data:
+
+<code bash>
+# Fetch DICOMs for a specific subject using neurospin-fetch
+ns-fetch --subject NS123456 --session 001 --output /data/projects/my_project/dicoms/
+</code>
+
+Then convert to NIfTI using `dcm2niix`:
+
+<code bash>
+dcm2niix -o /data/projects/my_project/nifti/sub-01/ses-01/ \
+         -f "%p_%s" \
+         /data/projects/my_project/dicoms/NS123456/
+</code>
+
+See [[data_storage|Data Storage]] for where to put your converted data.
+
+===== Contacts =====
+
+^ Issue ^ Contact ^
+| Scanner booking questions | mri-booking@neurospin.fr |
+| MRI safety questions | mri-safety@neurospin.fr |
+| Technical scanner malfunction | mri-tech@neurospin.fr |
+| 7T-specific requests | 7t-admin@neurospin.fr |

@@ -1,0 +1,164 @@
+====== Network Access at NeuroSpin ======
+
+This page describes how to access NeuroSpin computing resources from on-site and remotely, including VPN configuration, SSH setup, and cluster access.
+
+===== On-Site Network =====
+
+When physically at NeuroSpin (bâtiment 145), connect to:
+
+  * **Wired (recommended)**: plug into any wall Ethernet jack. You are automatically placed on the `neurospin-lab` VLAN once authenticated with your NeuroSpin credentials via 802.1X.
+  * **Wi-Fi — NeuroSpin-Staff**: WPA2-Enterprise. Use your NeuroSpin login/password. Full access to all internal resources.
+  * **Wi-Fi — NeuroSpin-Guests**: open network, internet access only. No access to internal servers, cluster, or shared storage. For visitors and personal laptops.
+
+===== VPN (Remote Access) =====
+
+For access to NeuroSpin internal resources from outside the building (home, other campuses), you must use the VPN.
+
+==== VPN Client Setup ====
+
+NeuroSpin uses **Cisco AnyConnect** (or the open-source `openconnect` client).
+
+**Step 1** — Download the client:
+  * **macOS/Windows**: download Cisco AnyConnect from http://vpn.neurospin.fr/download (requires your NeuroSpin login)
+  * **Linux**: use `openconnect` (recommended):
+
+<code bash>
+sudo apt install openconnect network-manager-openconnect
+</code>
+
+**Step 2** — Connect to the VPN:
+
+<code bash>
+# Using openconnect (Linux)
+sudo openconnect vpn.neurospin.fr --user=YOUR_NS_USERNAME
+
+# Enter your NeuroSpin password when prompted.
+# Leave the terminal open — closing it disconnects the VPN.
+# For background operation:
+sudo openconnect vpn.neurospin.fr --user=YOUR_NS_USERNAME --background --passwd-on-stdin <<< "your_password"
+</code>
+
+**Step 3** — Verify connection:
+<code bash>
+ping intranet.neurospin.fr   # should respond
+ping nscluster.neurospin.fr  # should respond
+</code>
+
+==== VPN Limitations ====
+
+  * VPN sessions are limited to **8 hours** before requiring re-authentication.
+  * Only one VPN session per user account is allowed simultaneously.
+  * VPN does not give access to the MRI booking system GUI — that requires physical presence or a separate remote desktop session.
+
+===== SSH Access to the HPC Cluster =====
+
+The NeuroSpin cluster (`nscluster`) is accessible by SSH from within the NeuroSpin network or over VPN.
+
+==== SSH Login ====
+
+<code bash>
+ssh YOUR_NS_USERNAME@nscluster.neurospin.fr
+# or using the short alias if configured:
+ssh nscluster
+</code>
+
+Recommended SSH config (add to `~/.ssh/config` on your local machine):
+
+<code>
+Host nscluster
+    HostName nscluster.neurospin.fr
+    User YOUR_NS_USERNAME
+    IdentityFile ~/.ssh/id_ed25519
+    ServerAliveInterval 60
+    ServerAliveCountMax 5
+    ForwardAgent yes
+</code>
+
+==== SSH Key Setup ====
+
+Always use key-based authentication (password auth is disabled on the cluster):
+
+<code bash>
+# Generate a key on your local machine (if you don't have one)
+ssh-keygen -t ed25519 -C "your_email@neurospin.fr"
+
+# Copy your public key to the cluster (requires your NS password — one time only)
+ssh-copy-id YOUR_NS_USERNAME@nscluster.neurospin.fr
+</code>
+
+===== Port Forwarding (Running Web Services) =====
+
+To access a web service running on the cluster from your laptop:
+
+<code bash>
+# Forward local port 8888 to port 8888 on the cluster (e.g., Jupyter)
+ssh -L 8888:localhost:8888 YOUR_NS_USERNAME@nscluster.neurospin.fr
+
+# Then open http://localhost:8888 in your browser
+</code>
+
+For services with a public-facing reverse proxy (e.g., tools hosted by IT on a dedicated server), no port forwarding is needed — ask it-support@neurospin.fr to configure a proxy rule.
+
+===== Remote Desktop (for GUI applications) =====
+
+For GUI applications (e.g., MRIcroGL, FSLeyes, MATLAB GUI), use X11 forwarding or a VNC session:
+
+<code bash>
+# X11 forwarding — slower but simple
+ssh -X YOUR_NS_USERNAME@nscluster.neurospin.fr
+fslview &   # opens on your local screen
+
+# VNC — recommended for interactive GUI work
+# 1. Start a VNC server on the cluster:
+vncserver :1 -geometry 1920x1080
+# 2. Forward port 5901 to your laptop:
+ssh -L 5901:localhost:5901 YOUR_NS_USERNAME@nscluster.neurospin.fr
+# 3. Connect from your laptop with any VNC viewer to localhost:5901
+</code>
+
+===== Firewall and Open Ports =====
+
+The NeuroSpin firewall blocks all incoming connections from the internet except:
+
+^ Port ^ Service ^ Notes ^
+| 22 | SSH | Cluster login nodes only; key auth required |
+| 443 | HTTPS | Public-facing web services only |
+| 80 | HTTP | Redirected to HTTPS |
+
+All other ports are blocked from external access. Services on non-standard ports (e.g., Jupyter on 8888, Chainlit on 8080) must be accessed via SSH tunnel or via a reverse proxy configured by IT.
+
+===== Jean Zay Cluster (IDRIS) =====
+
+Some NeuroSpin researchers also have access to the national HPC at IDRIS (Jean Zay). 
+
+To connect:
+
+<code bash>
+# Jean Zay is accessible only from NeuroSpin network or via NeuroSpin VPN
+ssh YOUR_IDRIS_USERNAME@jean-zay.idris.fr
+
+# Recommended SSH config alias (add to ~/.ssh/config):
+Host jean-zay
+    HostName jean-zay.idris.fr
+    User YOUR_IDRIS_USERNAME
+    IdentityFile ~/.ssh/id_ed25519_idris
+    ProxyJump nscluster   # Optional: jump through NeuroSpin cluster
+</code>
+
+Data transfer to Jean Zay requires a signed Data Transfer Agreement. See [[data_storage|Data Storage]] for RGPD/DTA procedures.
+
+===== Troubleshooting =====
+
+**VPN connects but I can't reach internal servers:**
+→ Check that your NeuroSpin IT account has VPN access enabled (it-support@neurospin.fr).
+→ Try disconnecting and reconnecting — sometimes the IP routing table gets corrupted.
+
+**SSH connection times out:**
+→ Verify you are on VPN (try `ping nscluster.neurospin.fr` first).
+→ Check that your SSH public key is still in `~/.ssh/authorized_keys` on the cluster.
+
+**"Too many authentication failures" on SSH:**
+→ Run `ssh -o IdentitiesOnly=yes -i ~/.ssh/id_ed25519 nscluster` to force the correct key.
+
+**Cluster is unreachable from Jean Zay:**
+→ Jean Zay firewalls outgoing connections; use your local machine as the jump host instead.
