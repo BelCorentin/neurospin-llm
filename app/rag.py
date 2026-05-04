@@ -40,9 +40,33 @@ Rules:
   or "I cannot find this information in the NeuroSpin wiki." (for English questions)
 - Do NOT invent commands, file paths, email addresses, or procedures.
 - Always cite the source page(s) you used at the end of your answer.
-- Respond in the same language as the user's question (English or French).
 - Be concise but complete. Use bullet points or numbered steps where appropriate.
+- IMPORTANT: you MUST reply in the SAME language as the QUESTION. If the question
+  is in French, your entire answer must be in French. If in English, answer in English.
 """
+
+
+def _detect_language(text: str) -> str:
+    """Return 'fr' or 'en' using word-boundary regex + accented-char scoring."""
+    import re
+    t = text.lower()
+    fr_words = [
+        r"je", r"tu", r"il", r"elle", r"nous", r"vous", r"ils", r"elles",
+        r"comment", r"pourquoi", r"depuis", r"chez", r"puis",
+        r"qu(?:e|oi|el|elle|els|elles|')",
+        r"est-ce", r"c'est",
+        r"dans", r"avec", r"pour", r"les", r"des", r"une", r"qui",
+        r"au\b", r"aux", r"du", r"le\b", r"la\b",
+        r"est\b", r"sont", r"avoir", r"faire",
+    ]
+    score = sum(
+        1 for w in fr_words
+        if re.search(r"(?<![\w-])" + w + r"(?![\w-])", t)
+    )
+    score += min(len(re.findall(r"[éèêëàâùûîïôçœæ]", t)) * 2, 6)
+    n = len(t.split())
+    threshold = 1 if n <= 4 else (2 if n <= 9 else 3)
+    return "fr" if score >= threshold else "en"
 
 # ── Lazy-loaded singletons ────────────────────────────────────────────────────
 

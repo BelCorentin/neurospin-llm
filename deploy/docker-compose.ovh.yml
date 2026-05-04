@@ -1,0 +1,40 @@
+# OVH deployment — Chainlit app only.
+#
+# Architecture:
+#   OVH server  →  Chainlit app (this file)
+#                       ↓  SSH tunnel
+#   NeuroSpin cluster → vLLM (port 8000) + Qdrant (port 6333)
+#
+# On the OVH server, run the tunnel first:
+#   ./tunnel.sh  (or use the systemd service in tunnel.service)
+#
+# Then start the app:
+#   docker compose -f docker-compose.ovh.yml --env-file .env.ovh up -d
+#
+# The app container reaches the tunnel via host.docker.internal.
+# VLLM_BASE_URL and QDRANT_URL in .env.ovh should use that hostname.
+
+services:
+  app:
+    build:
+      context: ../app
+      dockerfile: Dockerfile
+    image: neurospin-wiki-app:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"   # nginx will terminate SSL and proxy here
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # lets container reach host tunnels
+    environment:
+      QDRANT_URL:         ${QDRANT_URL:-http://host.docker.internal:6333}
+      VLLM_BASE_URL:      ${VLLM_BASE_URL:-http://host.docker.internal:8000/v1}
+      LLM_MODEL:          ${LLM_MODEL:-Qwen/Qwen2.5-7B-Instruct}
+      EMBED_MODEL:        ${EMBED_MODEL:-BAAI/bge-m3}
+      QDRANT_COLLECTION:  ${QDRANT_COLLECTION:-neurospin_wiki}
+      RAG_TOP_K:          ${RAG_TOP_K:-5}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s

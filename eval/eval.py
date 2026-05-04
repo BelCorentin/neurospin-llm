@@ -41,8 +41,34 @@ You are a helpful assistant for the NeuroSpin neuroimaging research center.
 Answer questions using ONLY the context provided below.
 If the context does not contain enough information, say so clearly.
 Cite the source page(s) you used.
-Answer in the same language as the question (English or French).
-Be concise (3-5 sentences maximum)."""
+Be concise (3-5 sentences maximum).
+IMPORTANT: you MUST reply in the SAME language as the QUESTION.
+If the question is in French, your entire answer must be in French.
+If the question is in English, answer in English."""
+
+
+def _detect_language(text: str) -> str:
+    """Return 'fr' or 'en' using word-boundary regex + accented-char scoring."""
+    import re
+    t = text.lower()
+    fr_words = [
+        r"je", r"tu", r"il", r"elle", r"nous", r"vous", r"ils", r"elles",
+        r"comment", r"pourquoi", r"depuis", r"chez", r"puis",
+        r"qu(?:e|oi|el|elle|els|elles|')",
+        r"est-ce", r"c'est", r"c'\u00e9tait",
+        r"dans", r"avec", r"pour", r"les", r"des", r"une", r"qui",
+        r"au\b", r"aux", r"du", r"le\b", r"la\b",
+        r"est\b", r"sont", r"avoir", r"faire",
+    ]
+    score = sum(
+        1 for w in fr_words
+        if re.search(r"(?<![\w-])" + w + r"(?![\w-])", t)
+    )
+    score += min(len(re.findall(r"[éèêëàâùûîïôçœæ]", t)) * 2, 6)
+    n = len(t.split())
+    n = len(t.split())
+    threshold = 1 if n <= 4 else (2 if n <= 9 else 3)
+    return "fr" if score >= threshold else "en"
 
 
 # ── Test cases ────────────────────────────────────────────────────────────────
@@ -133,12 +159,20 @@ def generate(question: str, chunks: list[dict], llm: OpenAI) -> str:
         )
     context = "\n\n---\n\n".join(context_parts)
 
+    lang = _detect_language(question)
+    lang_instruction = (
+        "Answer in French (the question is in French)."
+        if lang == "fr"
+        else "Answer in English (the question is in English)."
+    )
+
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {
             "role": "user",
             "content": (
                 f"CONTEXT:\n{context}\n\n"
+                f"INSTRUCTION: {lang_instruction}\n\n"
                 f"QUESTION: {question}"
             ),
         },

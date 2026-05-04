@@ -1,0 +1,28 @@
+[Unit]
+Description=SSH tunnel — NeuroSpin cluster (vLLM + Qdrant)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+# Edit these two:
+Environment=CLUSTER_USER=cbel
+Environment=CLUSTER_HOST=ext1.idris.fr
+
+ExecStart=/usr/bin/autossh \
+    -M 0 \
+    -N \
+    -o "ServerAliveInterval=30" \
+    -o "ServerAliveCountMax=3" \
+    -o "ExitOnForwardFailure=yes" \
+    -o "StrictHostKeyChecking=accept-new" \
+    -L "8000:localhost:8000" \
+    -L "6333:localhost:6333" \
+    ${CLUSTER_USER}@${CLUSTER_HOST}
+
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
