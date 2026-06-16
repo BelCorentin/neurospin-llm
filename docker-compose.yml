@@ -1,3 +1,8 @@
+# Fixed project name so every clone (any directory) shares the SAME named volumes
+# — notably the 15 GB model-weights volume. Without this, compose derives the
+# project from the clone dir name and a second user would get an empty volume.
+name: neurospin-llm
+
 services:
 
   # ── Vector database ──────────────────────────────────────────────────────────
@@ -9,7 +14,8 @@ services:
       - "${QDRANT_PORT:-6333}:6333"
       - "6334:6334"   # gRPC (optional)
     volumes:
-      - ./data/qdrant:/qdrant/storage
+      # Shared vector DB on /data (not in any user's /home). Holds the 988 chunks.
+      - ${QDRANT_DATA_DIR:-/data/shared/neurospin-llm/qdrant}:/qdrant/storage
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:6333/healthz || exit 1"]
       interval: 10s
@@ -26,6 +32,11 @@ services:
       - NVIDIA_VISIBLE_DEVICES=0          # Use GPU 0 only
       - HF_TOKEN=${HF_TOKEN:-}
       - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN:-}
+      # This host's firewall blocks the HF weight CDNs (xethub/cloudfront), so vLLM
+      # cannot download at runtime. Weights are fetched once via the proxy (see README
+      # "Download the models") into the huggingface_cache volume; here we run offline.
+      - HF_HUB_OFFLINE=1
+      - TRANSFORMERS_OFFLINE=1
     ports:
       - "${VLLM_PORT:-8000}:8000"
     volumes:
@@ -59,6 +70,13 @@ services:
       - LLM_MODEL=${LLM_MODEL:-Qwen/Qwen2.5-7B-Instruct}
       - EMBED_MODEL=${EMBED_MODEL:-BAAI/bge-m3}
       - RAG_TOP_K=${RAG_TOP_K:-5}
+      # bge-m3 is read from the host cache mounted below — no download at runtime.
+      - HF_HOME=/hf-cache
+      - HF_HUB_OFFLINE=1
+      - TRANSFORMERS_OFFLINE=1
+    volumes:
+      # Shared host HF cache (holds bge-m3). Download once via proxy — see README.
+      - ${HF_CACHE_DIR:-/data/shared/neurospin-llm/hf}:/hf-cache:ro
     ports:
       - "${APP_PORT:-8080}:8080"
     depends_on:

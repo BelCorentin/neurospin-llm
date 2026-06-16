@@ -12,9 +12,10 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Pre-download the embedding model into the image so the first request is fast.
-# The model is ~1.1 GB; it will be cached in Docker layer.
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('BAAI/bge-m3')"
+# NOTE: bge-m3 is NOT baked into the image. This host's firewall blocks the HF
+# weight CDNs, so the model is downloaded once via the proxy into the host cache
+# (/data/cbel/hf, see README) and mounted at /hf-cache via docker-compose. The app
+# runs with HF_HOME=/hf-cache and HF_HUB_OFFLINE=1.
 
 # Copy application code
 COPY app.py rag.py ./
