@@ -37,6 +37,7 @@ from sentence_transformers import SentenceTransformer
 # ── Config ────────────────────────────────────────────────────────────────────
 
 QDRANT_URL    = os.environ.get("QDRANT_URL",          "http://localhost:6333")
+QDRANT_PATH   = os.environ.get("QDRANT_PATH")  # if set, embedded on-disk mode (no server)
 VLLM_BASE_URL = os.environ.get("VLLM_BASE_URL",       "http://localhost:8000/v1")
 LLM_MODEL     = os.environ.get("LLM_MODEL",           "Qwen/Qwen2.5-7B-Instruct")
 EMBED_MODEL   = os.environ.get("EMBED_MODEL",         "BAAI/bge-m3")
@@ -187,12 +188,13 @@ def main() -> None:
     print(f"\r{DIM}Embedding model ready.{' '*30}{RESET}")
 
     # Connect to Qdrant
-    qdrant = QdrantClient(url=QDRANT_URL)
+    qdrant = QdrantClient(path=QDRANT_PATH) if QDRANT_PATH else QdrantClient(url=QDRANT_URL)
     try:
         count = qdrant.count(collection_name=COLLECTION).count
         print(f"{DIM}Qdrant: {count} chunks in '{COLLECTION}'{RESET}")
     except Exception as e:
-        print(f"{RED}ERROR: Qdrant not reachable at {QDRANT_URL}: {e}{RESET}", file=sys.stderr)
+        where = QDRANT_PATH or QDRANT_URL
+        print(f"{RED}ERROR: Qdrant not reachable at {where}: {e}{RESET}", file=sys.stderr)
         sys.exit(1)
 
     # Connect to vLLM

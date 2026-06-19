@@ -33,6 +33,7 @@ from qdrant_client.models import Distance, PointStruct, VectorParams
 # ── Configuration ────────────────────────────────────────────────────────────
 
 QDRANT_URL = os.environ.get("QDRANT_URL", "http://localhost:6333")
+QDRANT_PATH = os.environ.get("QDRANT_PATH")  # if set, embedded on-disk mode (no server)
 COLLECTION_NAME = os.environ.get("QDRANT_COLLECTION", "neurospin_wiki")
 EMBED_MODEL = os.environ.get("EMBED_MODEL", "BAAI/bge-m3")
 CHUNK_TOKENS = int(os.environ.get("CHUNK_TOKENS", "500"))
@@ -220,7 +221,7 @@ def ingest(data_dir: Path, reset: bool = False, pmwiki: bool = True) -> None:
     print(f"Found {len(all_files)} file(s) in {data_dir}")
 
     # ── Qdrant ────────────────────────────────────────────────────────────────
-    client = QdrantClient(url=QDRANT_URL)
+    client = QdrantClient(path=QDRANT_PATH) if QDRANT_PATH else QdrantClient(url=QDRANT_URL)
 
     if reset:
         print(f"Dropping collection '{COLLECTION_NAME}' (--reset)…")
